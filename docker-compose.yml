@@ -1,0 +1,104 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:14-alpine
+    container_name: cryptoagent-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: cryptoagent
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cryptoagent-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: cryptoagent-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cryptoagent-network
+
+  # Qdrant Vector Database
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: cryptoagent-qdrant
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      QDRANT_API_KEY: ""
+    networks:
+      - cryptoagent-network
+
+  # NestJS Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cryptoagent-backend
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/cryptoagent
+      REDIS_URL: redis://redis:6379
+      QDRANT_URL: http://qdrant:6333
+      JWT_SECRET: your_super_secret_jwt_key_change_in_production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/node_modules:/app/node_modules
+    networks:
+      - cryptoagent-network
+    command: npm run start:dev
+
+  # Flutter Web
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        API_URL: http://localhost:3000
+    container_name: cryptoagent-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - cryptoagent-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  qdrant_data:
+
+networks:
+  cryptoagent-network:
+    driver: bridge

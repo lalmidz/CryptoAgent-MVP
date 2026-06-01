@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+.pub-cache/
+.packages
+package-lock.json
+yarn.lock
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build
+build/
+dist/
+out/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tests
+.nyc_output/
+coverage/
+
+# Flutter
+.metadata
+.packages
+pubspec.lock
+
+# Backend
+dist/
+.next/
+out/
+
+# Cache
+.cache/
+.eslintcache
